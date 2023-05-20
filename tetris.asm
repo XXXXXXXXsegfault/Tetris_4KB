@@ -143,9 +143,9 @@ ret
 .byte 005
 .byte 031
 @NEXT_str
-.long 0,5,10,15
+.byte 0,5,10,15
 @SCORE_str
-.long 20,25,30,35,5
+.byte 20,25,30,35,5
 @Tetris_bitmap
 .word 0x0660
 .word 0x0660
@@ -380,24 +380,24 @@ mov $0xffffff,%edx
 call @rect
 mov $390+72,%eax
 mov $2,%ecx
-mov $16,%ebx
+mov $4,%ebx
 @paint_all_NEXT
-mov @NEXT_str-4(%rbx),%edx
+movzbl @NEXT_str-1(%rbx),%edx
 add $@N_bitmap,%edx
 call @p_letter
 sub $24,%eax
-sub $4,%ebx
+dec %ebx
 jne @paint_all_NEXT
 
 mov $390+96,%eax
 mov $200,%ecx
-mov $20,%ebx
+mov $5,%ebx
 @paint_all_SCORE
-mov @SCORE_str-4(%rbx),%edx
+movzbl @SCORE_str-1(%rbx),%edx
 add $@N_bitmap,%edx
 call @p_letter
 sub $24,%eax
-sub $4,%ebx
+dec %ebx
 jne @paint_all_SCORE
 
 call @p_map
@@ -439,6 +439,8 @@ mov %rsp,%rbp
 and $0xf0,%spl
 sub $32,%rsp
 .dllcall "msvcrt.dll" "rand"
+xchg %al,%ah
+xor $0x3456,%ax
 mov $28,%ecx
 xor %edx,%edx
 div %ecx
