@@ -437,10 +437,13 @@ push %r11
 push %rbp
 mov %rsp,%rbp
 and $0xf0,%spl
-sub $32,%rsp
-.dllcall "msvcrt.dll" "rand"
-xchg %al,%ah
-xor $0x3456,%ax
+sub $48,%rsp
+@rand_loop
+mov %rsp,%rcx
+.dllcall "msvcrt.dll" "rand_s"
+test %rax,%rax
+jne @rand_loop
+mov (%rsp),%eax
 mov $28,%ecx
 xor %edx,%edx
 div %ecx
@@ -705,14 +708,6 @@ pop %rax
 ret
 
 @game_init
-xor %ecx,%ecx
-sub $32,%rsp
-push %rcx
-.dllcall "msvcrt.dll" "time"
-mov %rax,%rcx
-mov %rax,(%rsp)
-.dllcall "msvcrt.dll" "srand"
-add $40,%rsp
 call @Tetris_rand
 mov %eax,@_$DATA+32
 call @Tetris_rand
