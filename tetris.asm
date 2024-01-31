@@ -1,10 +1,8 @@
 @WCName
-.string "TETRIS"
 @WinName
 .string "Tetris"
 
-@buf_display
-push %rax
+@redraw
 push %rcx
 push %rdx
 push %rsi
@@ -13,32 +11,17 @@ push %r8
 push %r9
 push %r10
 push %r11
+push %rbp
 
-sub $8,%rsp
-mov $@_$DATA+576,%r8
-mov $983488,%edx
-mov @_$DATA+16,%rcx
-push %r8
-push %rdx
-push %rcx
-.dllcall "gdi32.dll" "SetBitmapBits"
-add $24,%rsp
+sub $32,%rsp
 mov @_$DATA+0,%rcx
 xor %edx,%edx
-mov %rdx,%r8
-mov $508,%r9
-pushq $0xcc0020
-push %rdx
-push %rdx
-pushq @_$DATA+8
-pushq $484
-push %r9
-push %r8
-push %rdx
-push %rcx
-.dllcall "gdi32.dll" "BitBlt"
-add $80,%rsp
+xor %r8d,%r8d
+.dllcall "user32.dll" "InvalidateRect"
 
+add $32,%rsp
+
+pop %rbp
 pop %r11
 pop %r10
 pop %r9
@@ -47,7 +30,6 @@ pop %rdi
 pop %rsi
 pop %rdx
 pop %rcx
-pop %rax
 ret
 
 @rect
@@ -372,6 +354,17 @@ ret
 
 @paint_all
 push %rbx
+
+mov $122936,%ecx
+xor %eax,%eax
+mov $@_$DATA+576,%rdx
+
+@paint_all_clear
+mov %rax,(%rdx)
+add $8,%rdx
+dec %ecx
+jne @paint_all_clear
+
 mov $388,%eax
 xor %ecx,%ecx
 mov $1,%esi
@@ -546,15 +539,19 @@ ret
 
 @Tetris_game_over
 movb $1,@_$DATA+48
+and $0xf0,%spl
+sub $32,%rsp
+
+mov @_$DATA+0,%rcx
+xor %edx,%edx
+.dllcall "user32.dll" "KillTimer"
+
 xor %ecx,%ecx
 mov %ecx,%r9d
 mov $@game_over_msg,%rdx
 mov %rdx,%r8
-and $0xf0,%spl
-push %r9
-push %r8
-push %rdx
-push %rcx
+
+
 .dllcall "user32.dll" "MessageBoxA"
 xor %ecx,%ecx
 mov %rcx,(%rsp)
@@ -675,7 +672,7 @@ mov %ch,@_$DATA+32
 
 @Tetris_rotate_X1
 
-movb $1,@_$DATA+24
+call @redraw
 pop %rcx
 pop %rax
 ret
@@ -702,7 +699,9 @@ je @Tetris_move_end
 call @Tetris_put
 
 @Tetris_move_end
-movb $1,@_$DATA+24
+
+call @redraw
+
 pop %rdx
 pop %rax
 ret
@@ -716,82 +715,6 @@ movl $6,@_$DATA+40
 movl $-4,@_$DATA+44
 movl $1000,@_$DATA+56
 ret
-
-@T_game
-sub $8,%rsp
-call @Tetris_clock
-@T_game_loop
-
-mov $0,%al
-xchg %al,@_$DATA+68
-cmp $1,%al
-jne @T_game_Up
-
-call @Tetris_rotate
-jmp @T_game_E1
-
-@T_game_Up
-cmp $2,%al
-jne @T_game_Down
-xor %eax,%eax
-mov $1,%ecx
-call @Tetris_move
-jmp @T_game_E1
-
-@T_game_Down
-cmp $3,%al
-jne @T_game_Left
-xor %ecx,%ecx
-mov $-1,%eax
-call @Tetris_move
-jmp @T_game_E1
-
-@T_game_Left
-cmp $4,%al
-jne @T_game_E1
-xor %ecx,%ecx
-mov $1,%eax
-call @Tetris_move
-@T_game_E1
-
-cmpb $0,@_$DATA+24
-je @T_game_paint
-movb $0,@_$DATA+24
-mov $983488,%r8
-xor %edx,%edx
-mov $@_$DATA+576,%ecx
-push %r8
-push %r8
-push %rdx
-push %rcx
-.dllcall "msvcrt.dll" "memset"
-add $32,%rsp
-call @paint_all
-call @buf_display
-@T_game_paint
-
-sub $24,%rsp
-mov $3,%ecx
-push %rcx
-.dllcall "kernel32.dll" "Sleep"
-add $32,%rsp
-call @Tetris_clock
-shl $1,%eax
-add @_$DATA+64,%eax
-cmp @_$DATA+56,%eax
-jb @T_game_X1
-sub @_$DATA+56,%eax
-push %rax
-xor %eax,%eax
-mov $1,%ecx
-call @Tetris_move
-pop %rax
-@T_game_X1
-mov %eax,@_$DATA+64
-jmp @T_game_loop
-
-
-
 
 @WndProc
 push %rbp
@@ -810,20 +733,64 @@ push %rcx
 @WndProc_Destroy
 cmp $15,%edx
 jne @WndProc_Paint
-sub $96,%rsp
-mov -32(%rbp),%rcx
-lea 16(%rsp),%rdx
-push %rdx
-push %rcx
+
+push %rbx
+push %r12
+push %r13
+push %r14
+
+sub $160,%rsp
+mov %rcx,%r12
+lea 32(%rsp),%rdx
 .dllcall "user32.dll" "BeginPaint"
-add $16,%rsp
-mov -32(%rbp),%rcx
-lea 16(%rsp),%rdx
+mov %rax,%rcx
+mov %rax,%r13
+.dllcall "gdi32.dll" "CreateCompatibleDC"
+mov %rax,%r14
+mov %r13,%rcx
+mov $508,%edx
+mov $484,%r8d
+.dllcall "gdi32.dll" "CreateCompatibleBitmap"
+mov %rax,%rbx
+mov %rax,%rdx
+mov %r14,%rcx
+.dllcall "gdi32.dll" "SelectObject"
+call @paint_all
+mov %rbx,%rcx
+mov $983488,%edx
+mov $@_$DATA+576,%r8
+.dllcall "gdi32.dll" "SetBitmapBits"
+sub $8,%rsp
+
+mov %r13,%rcx
+xor %edx,%edx
+xor %r8d,%r8d
+mov $508,%r9d
+pushq $0xcc0020
 push %rdx
-push %rcx
+push %rdx
+push %r14
+pushq $484
+sub $32,%rsp
+
+.dllcall "gdi32.dll" "BitBlt"
+add $80,%rsp
+
+mov %rbx,%rcx
+.dllcall "gdi32.dll" "DeleteObject"
+mov %r14,%rcx
+.dllcall "gdi32.dll" "DeleteDC"
+lea 32(%rsp),%rdx
+mov %r12,%rcx
 .dllcall "user32.dll" "EndPaint"
-add $112,%rsp
-movb $1,@_$DATA+24
+
+add $160,%rsp
+
+pop %r14
+pop %r13
+pop %r12
+pop %rbx
+
 jmp @WndProc_End
 @WndProc_Paint
 cmp $256,%edx
@@ -831,30 +798,56 @@ jne @WndProc_Keydown
 cmp $38,%r8d
 jne @Keydown_Up
 
-movb $1,@_$DATA+68
+call @Tetris_rotate
 
 jmp @WndProc_End
 @Keydown_Up
 cmp $40,%r8d
 jne @Keydown_Down
 
-movb $2,@_$DATA+68
+xor %eax,%eax
+mov $1,%ecx
+call @Tetris_move
 
 jmp @WndProc_End
 @Keydown_Down
 cmp $37,%r8d
 jne @Keydown_Left
 
-movb $3,@_$DATA+68
+xor %ecx,%ecx
+mov $-1,%eax
+call @Tetris_move
 
 jmp @WndProc_End
 @Keydown_Left
 cmp $39,%r8d
 jne @Keydown_Right
 
-movb $4,@_$DATA+68
+xor %ecx,%ecx
+mov $1,%eax
+call @Tetris_move
+
 @Keydown_Right
 @WndProc_Keydown
+
+cmp $275,%edx
+jne @WndProc_Timer
+
+call @Tetris_clock
+shl $1,%eax
+add @_$DATA+64,%eax
+cmp @_$DATA+56,%eax
+jb @clock_X1
+sub @_$DATA+56,%eax
+push %rax
+xor %eax,%eax
+mov $1,%ecx
+call @Tetris_move
+pop %rax
+@clock_X1
+mov %eax,@_$DATA+64
+
+@WndProc_Timer
 
 @WndProc_End
 lea -32(%rbp),%rsp
@@ -863,7 +856,7 @@ mov 8(%rsp),%rdx
 mov 16(%rsp),%r8
 mov 24(%rsp),%r9
 .dllcall "user32.dll" "DefWindowProcA"
-add $32,%rsp
+mov %rbp,%rsp
 pop %rbp
 ret
 
@@ -928,72 +921,30 @@ push %r8
 push %rdx
 push %rcx
 .dllcall "user32.dll" "CreateWindowExA"
-add $72,%rsp
 test %rax,%rax
 je @Err_Exit
 
-mov %rax,%r14
-mov %rax,%rcx
-
-push %rcx
-.dllcall "user32.dll" "GetDC"
-add $8,%rsp
-mov %rax,%rcx
 mov %rax,@_$DATA+0
-push %rcx
-.dllcall "gdi32.dll" "CreateCompatibleDC"
-mov %rax,@_$DATA+8
-mov @_$DATA+0,%rcx
-mov $388+120,%edx
-mov $484,%r8d
-push %r8
-push %rdx
-push %rcx
-.dllcall "gdi32.dll" "CreateCompatibleBitmap"
-add $16,%rsp
-mov %rax,@_$DATA+16
-mov %rax,%rdx
-mov @_$DATA+8,%rcx
-push %rdx
-push %rcx
-.dllcall "gdi32.dll" "SelectObject"
-add $56,%rsp
+mov %rax,%rcx
+xor %edx,%edx
+mov %edx,%r9d
+mov $15,%r8d
+.dllcall "user32.dll" "SetTimer"
 
-push %rbx
-push %rbx
-mov %rbx,%r9
-mov $@T_game,%r8
-mov %ebx,%edx
-mov %ebx,%ecx
-push %r9
-push %r8
-push %rdx
-push %rcx
-.dllcall "kernel32.dll" "CreateThread"
-add $48,%rsp
+call @Tetris_clock
 
 @MsgLoop
-mov %rbx,%r9
-mov %rbx,%r8
-mov %ebx,%edx
-mov %rsp,%rcx
-push %r9
-push %r8
-push %rdx
-push %rcx
+lea 32(%rsp),%rcx
+xor %edx,%edx
+mov %edx,%r8d
+mov %edx,%r9d
 .dllcall "user32.dll" "GetMessageA"
-add $8,%rsp
 cmp $0,%rax
 jl @Err_Exit
-lea 24(%rsp),%rcx
-push %rcx
+lea 32(%rsp),%rcx
 .dllcall "user32.dll" "TranslateMessage"
-add $8,%rsp
-lea 24(%rsp),%rcx
-push %rcx
+lea 32(%rsp),%rcx
 .dllcall "user32.dll" "DispatchMessageA"
-add $32,%rsp
-
 jmp @MsgLoop
 
 @Err_Exit
