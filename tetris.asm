@@ -64,108 +64,6 @@ pop %rdx
 pop %rcx
 pop %rax
 ret
-.align 2
-@digits_bitmap
-.word 075557
-.word 044444
-.word 071747
-.word 074747
-.word 044755
-.word 074717
-.word 075717
-.word 044447
-.word 075757
-.word 074757
-@N_bitmap
-.byte 021
-.byte 023
-.byte 025
-.byte 031
-.byte 021
-@E_bitmap
-.byte 037
-.byte 001
-.byte 037
-.byte 001
-.byte 037
-@X_bitmap
-.byte 021
-.byte 012
-.byte 004
-.byte 012
-.byte 021
-@T_bitmap
-.byte 037
-.byte 004
-.byte 004
-.byte 004
-.byte 004
-@S_bitmap
-.byte 036
-.byte 001
-.byte 016
-.byte 020
-.byte 017
-@C_bitmap
-.byte 036
-.byte 001
-.byte 001
-.byte 001
-.byte 036
-@O_bitmap
-.byte 016
-.byte 021
-.byte 021
-.byte 021
-.byte 016
-@R_bitmap
-.byte 017
-.byte 021
-.byte 017
-.byte 005
-.byte 031
-@NEXT_str
-.byte 0,5,10,15
-@SCORE_str
-.byte 20,25,30,35,5
-@Tetris_bitmap
-.word 0x0660
-.word 0x0660
-.word 0x0660
-.word 0x0660
-
-.word 0x0072
-.word 0x0262
-.word 0x0270
-.word 0x0232
-
-.word 0x00f0
-.word 0x2222
-.word 0x00f0
-.word 0x2222
-
-.word 0x0074
-.word 0x0622
-.word 0x0170
-.word 0x0223
-
-.word 0x0063
-.word 0x0264
-.word 0x0063
-.word 0x0264
-
-.word 0x0071
-.word 0x0226
-.word 0x0470
-.word 0x0322
-
-.word 0x0036
-.word 0x0231
-.word 0x0036
-.word 0x0231
-
-@Tetris_color
-.long 0x00ff00,0xffff00,0xff00ff,0xff0000,0x00ffff,0xff0000,0x00ffff
 
 @p_digit
 push %rax
@@ -555,7 +453,7 @@ mov %rdx,%r8
 .dllcall "user32.dll" "MessageBoxA"
 xor %ecx,%ecx
 mov %rcx,(%rsp)
-.dllcall "kernel32.dll" "ExitProcess"
+.dllcall "msvcrt.dll" "exit"
 
 
 @Tetris_put
@@ -728,7 +626,7 @@ jne @WndProc_Destroy
 xor %ecx,%ecx
 sub $24,%rsp
 push %rcx
-.dllcall "kernel32.dll" "ExitProcess"
+.dllcall "msvcrt.dll" "exit"
 
 @WndProc_Destroy
 cmp $15,%edx
@@ -908,11 +806,12 @@ push %rbx
 pushq $0x400000
 push %rbx
 push %rbx
-pushq $484+29
-pushq $388+120+6
-push %rbx
-push %rbx
-mov $0x10c80000,%r9d
+pushq $484
+pushq $508
+mov $0x80000000,%eax
+push %rax
+push %rax
+mov $0x00c80000,%r9d
 mov $@WinName,%r8d
 mov $@WCName,%edx
 mov $0x100,%ecx
@@ -923,8 +822,28 @@ push %rcx
 .dllcall "user32.dll" "CreateWindowExA"
 test %rax,%rax
 je @Err_Exit
-
 mov %rax,@_$DATA+0
+mov %rax,%rcx
+lea 32(%rsp),%rdx
+.dllcall "user32.dll" "GetWindowRect"
+mov @_$DATA+0,%rcx
+lea 48(%rsp),%rdx
+.dllcall "user32.dll" "GetClientRect"
+mov 32(%rsp),%edx
+mov 36(%rsp),%r8d
+mov $1016,%r9d
+sub 56(%rsp),%r9d
+mov $968,%eax
+sub 60(%rsp),%eax
+mov %rax,32(%rsp)
+movq $0,40(%rsp)
+mov @_$DATA+0,%rcx
+.dllcall "user32.dll" "MoveWindow"
+mov @_$DATA+0,%rcx
+mov $5,%edx
+.dllcall "user32.dll" "ShowWindow"
+
+mov @_$DATA+0,%rax
 mov %rax,%rcx
 xor %edx,%edx
 mov %edx,%r9d
@@ -951,5 +870,109 @@ jmp @MsgLoop
 mov %rbp,%rsp
 pop %rbp
 ret
+
+.align 2
+@digits_bitmap
+.word 075557
+.word 044444
+.word 071747
+.word 074747
+.word 044755
+.word 074717
+.word 075717
+.word 044447
+.word 075757
+.word 074757
+@N_bitmap
+.byte 021
+.byte 023
+.byte 025
+.byte 031
+.byte 021
+@E_bitmap
+.byte 037
+.byte 001
+.byte 037
+.byte 001
+.byte 037
+@X_bitmap
+.byte 021
+.byte 012
+.byte 004
+.byte 012
+.byte 021
+@T_bitmap
+.byte 037
+.byte 004
+.byte 004
+.byte 004
+.byte 004
+@S_bitmap
+.byte 036
+.byte 001
+.byte 016
+.byte 020
+.byte 017
+@C_bitmap
+.byte 036
+.byte 001
+.byte 001
+.byte 001
+.byte 036
+@O_bitmap
+.byte 016
+.byte 021
+.byte 021
+.byte 021
+.byte 016
+@R_bitmap
+.byte 017
+.byte 021
+.byte 017
+.byte 005
+.byte 031
+@NEXT_str
+.byte 0,5,10,15
+@SCORE_str
+.byte 20,25,30,35,5
+@Tetris_bitmap
+.word 0x0660
+.word 0x0660
+.word 0x0660
+.word 0x0660
+
+.word 0x0072
+.word 0x0262
+.word 0x0270
+.word 0x0232
+
+.word 0x00f0
+.word 0x2222
+.word 0x00f0
+.word 0x2222
+
+.word 0x0074
+.word 0x0622
+.word 0x0170
+.word 0x0223
+
+.word 0x0063
+.word 0x0264
+.word 0x0063
+.word 0x0264
+
+.word 0x0071
+.word 0x0226
+.word 0x0470
+.word 0x0322
+
+.word 0x0036
+.word 0x0231
+.word 0x0036
+.word 0x0231
+
+@Tetris_color
+.long 0x00ff00,0xffff00,0xff00ff,0xff0000,0x00ffff,0xff0000,0x00ffff
+
 
 .datasize 995328
