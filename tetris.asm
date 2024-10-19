@@ -1,7 +1,3 @@
-@WCName
-@WinName
-.string "Tetris"
-
 @redraw
 push %rcx
 push %rdx
@@ -14,7 +10,7 @@ push %r11
 push %rbp
 
 sub $32,%rsp
-mov @_$DATA+0,%rcx
+mov @_$DATA+0-@_$NEXT(%rip),%rcx
 xor %edx,%edx
 xor %r8d,%r8d
 .dllcall "user32.dll" "InvalidateRect"
@@ -40,12 +36,15 @@ push %rsi
 push %rdi
 push %r8
 push %r9
+push %r10
 
+lea @_$DATA+576-4-@_$NEXT(%rip),%r10
 mov %eax,%r8d
 mov %edx,%r9d
-mov $2032,%eax
+mov $2032,%rax
 mul %ecx
-lea @_$DATA+576-4(%rax,%r8,4),%rcx
+lea (%rax,%r8,4),%rcx
+add %r10,%rcx
 @rect_X1
 mov %esi,%r8d
 @rect_X2
@@ -56,6 +55,7 @@ add $2032,%rcx
 dec %edi
 jne @rect_X1
 
+pop %r10
 pop %r9
 pop %r8
 pop %rdi
@@ -72,7 +72,8 @@ push %rdx
 push %rsi
 push %rdi
 shl $1,%edx
-mov @digits_bitmap(%rdx),%si
+lea @digits_bitmap-@_$NEXT(%rip),%rsi
+mov (%rsi,%rdx,1),%si
 mov $5,%dh
 @p_digit_X1
 mov $3,%dl
@@ -182,12 +183,15 @@ push %rcx
 push %rdx
 push %rsi
 push %rbx
+push %r8
+
+lea @Tetris_color-@_$NEXT(%rip),%r8
 
 mov %edx,%esi
 and $0xfc,%dl
-mov @Tetris_color(%rdx),%edx
+mov (%r8,%rdx,1),%edx
 shl $1,%esi
-mov @Tetris_bitmap(%rsi),%si
+mov @Tetris_bitmap-@Tetris_color(%r8,%rsi,1),%si
 
 mov $4,%bh
 @p_tetris_X1
@@ -206,6 +210,7 @@ inc %ecx
 dec %bh
 jne @p_tetris_X1
 
+pop %r8
 pop %rbx
 pop %rsi
 pop %rdx
@@ -218,8 +223,10 @@ push %rax
 push %rcx
 push %rdx
 push %rsi
+push %rdi
 
-mov $@_$DATA+256,%rsi
+lea @_$DATA+256-@_$NEXT(%rip),%rsi
+mov %rsi,%rdi
 
 xor %ecx,%ecx
 @p_map_X1
@@ -231,7 +238,7 @@ test %dl,%dl
 je @p_map_X3
 movzbl %dl,%edx
 shl $2,%edx
-mov @Tetris_color-4(%rdx),%edx
+mov @Tetris_color-4-@_$DATA-256(%rdi,%rdx,1),%edx
 call @p_block
 @p_map_X3
 
@@ -244,6 +251,7 @@ inc %ecx
 cmp $20,%ecx
 jne @p_map_X1
 
+pop %rdi
 pop %rsi
 pop %rdx
 pop %rcx
@@ -252,10 +260,12 @@ ret
 
 @paint_all
 push %rbx
+push %r8
 
+lea @N_bitmap-@_$NEXT(%rip),%r8
 mov $122936,%ecx
 xor %eax,%eax
-mov $@_$DATA+576,%rdx
+lea @_$DATA+576-@N_bitmap(%r8),%rdx
 
 @paint_all_clear
 mov %rax,(%rdx)
@@ -273,8 +283,8 @@ mov $390+72,%eax
 mov $2,%ecx
 mov $4,%ebx
 @paint_all_NEXT
-movzbl @NEXT_str-1(%rbx),%edx
-add $@N_bitmap,%edx
+movzbl @NEXT_str-1-@N_bitmap(%r8,%rbx,1),%edx
+add %r8,%rdx
 call @p_letter
 sub $24,%eax
 dec %ebx
@@ -284,23 +294,23 @@ mov $390+96,%eax
 mov $200,%ecx
 mov $5,%ebx
 @paint_all_SCORE
-movzbl @SCORE_str-1(%rbx),%edx
-add $@N_bitmap,%edx
+movzbl @SCORE_str-1-@N_bitmap(%r8,%rbx,1),%edx
+add %r8,%rdx
 call @p_letter
 sub $24,%eax
 dec %ebx
 jne @paint_all_SCORE
 
 call @p_map
-mov @_$DATA+36,%edx
+mov @_$DATA+36-@_$NEXT(%rip),%edx
 mov $17,%eax
 mov $2,%ecx
 call @p_tetris
-mov @_$DATA+32,%edx
-mov @_$DATA+40,%eax
-mov @_$DATA+44,%ecx
+mov @_$DATA+32-@_$NEXT(%rip),%edx
+mov @_$DATA+40-@_$NEXT(%rip),%eax
+mov @_$DATA+44-@_$NEXT(%rip),%ecx
 call @p_tetris
-mov @_$DATA+52,%eax
+mov @_$DATA+52-@_$NEXT(%rip),%eax
 mov $490,%ebx
 @p_score_X1
 xor %edx,%edx
@@ -314,6 +324,7 @@ xchg %eax,%ebx
 test %eax,%eax
 jne @p_score_X1
 
+pop %r8
 pop %rbx
 ret
 @Tetris_rand
@@ -365,8 +376,8 @@ and $0xf0,%spl
 sub $32,%rsp
 .dllcall "msvcrt.dll" "clock"
 mov %eax,%ecx
-sub @_$DATA+60,%eax
-mov %ecx,@_$DATA+60
+sub @_$DATA+60-@_$NEXT(%rip),%eax
+mov %ecx,@_$DATA+60-@_$NEXT(%rip)
 mov %rbp,%rsp
 pop %rbp
 pop %r11
@@ -384,11 +395,14 @@ push %rcx
 push %rdx
 push %rbx
 push %rsi
-mov @_$DATA+40,%eax
-mov @_$DATA+44,%ecx
-mov @_$DATA+32,%edx
+push %rdi
+push %r8
+lea @_$DATA+0-@_$NEXT(%rip),%r8
+mov 40(%r8),%eax
+mov 44(%r8),%ecx
+mov 32(%r8),%edx
 shl $1,%edx
-mov @Tetris_bitmap(%rdx),%dx
+mov @Tetris_bitmap-@_$DATA+0(%r8,%rdx,1),%dx
 mov $4,%bh
 @Tetris_check_X1
 mov $4,%bl
@@ -406,7 +420,7 @@ jae @Tetris_check_fail
 mov %ecx,%esi
 shl $4,%esi
 add %eax,%esi
-cmpb $0,@_$DATA+256(%rsi)
+cmpb $0,256(%r8,%rsi,1)
 jne @Tetris_check_fail
 
 @Tetris_check_X3
@@ -426,6 +440,8 @@ jmp @Tetris_check_end
 @Tetris_check_fail
 mov $1,%eax
 @Tetris_check_end
+pop %r8
+pop %rdi
 pop %rsi
 pop %rbx
 pop %rdx
@@ -436,17 +452,17 @@ ret
 .string "Game Over"
 
 @Tetris_game_over
-movb $1,@_$DATA+48
+movb $1,@_$DATA+48-@_$NEXT(%rip)
 and $0xf0,%spl
 sub $32,%rsp
 
-mov @_$DATA+0,%rcx
+mov @_$DATA+0-@_$NEXT(%rip),%rcx
 xor %edx,%edx
 .dllcall "user32.dll" "KillTimer"
 
 xor %ecx,%ecx
 mov %ecx,%r9d
-mov $@game_over_msg,%rdx
+lea @game_over_msg-@_$NEXT(%rip),%rdx
 mov %rdx,%r8
 
 
@@ -463,16 +479,18 @@ push %rdx
 push %rbx
 push %rsi
 push %rdi
+push %r8
 
-mov @_$DATA+40,%eax
-mov @_$DATA+44,%ecx
-mov @_$DATA+32,%edx
+lea @_$DATA-@_$NEXT(%rip),%r8
+mov 40(%r8),%eax
+mov 44(%r8),%ecx
+mov 32(%r8),%edx
 
 mov %edx,%esi
 shr $2,%esi
 inc %esi
 shl $1,%edx
-mov @Tetris_bitmap(%rdx),%dx
+mov @Tetris_bitmap-@_$DATA(%r8,%rdx,1),%dx
 mov $4,%bh
 @Tetris_put_X1
 mov $4,%bl
@@ -482,11 +500,11 @@ test $1,%edx
 je @Tetris_put_X3
 cmp $0,%ecx
 jl @Tetris_game_over
-incb @_$DATA+129(%rcx)
+incb 129(%r8,%rcx,1)
 mov %ecx,%edi
 shl $4,%edi
 add %eax,%edi
-mov %sil,@_$DATA+256(%rdi)
+mov %sil,256(%r8,%rdi,1)
 @Tetris_put_X3
 shr $1,%edx
 inc %eax
@@ -501,31 +519,31 @@ jne @Tetris_put_X1
 xor %ecx,%ecx
 mov %ecx,%eax
 @Tetris_put_X4
-cmpb $16,@_$DATA+129(%rcx)
+cmpb $16,129(%r8,%rcx,1)
 jne @Tetris_put_X5
 mov %ecx,%edx
 @Tetris_put_X6
-mov @_$DATA+129-1(%rdx),%bl
-mov %bl,@_$DATA+129(%rdx)
+mov 129-1(%r8,%rdx,1),%bl
+mov %bl,129(%r8,%rdx,1)
 dec %edx
 jne @Tetris_put_X6
 mov %eax,%edx
 @Tetris_put_X7
-mov @_$DATA+240(%rdx),%rbx
-mov %rbx,@_$DATA+256(%rdx)
-mov @_$DATA+240+8(%rdx),%rbx
-mov %rbx,@_$DATA+256+8(%rdx)
+mov 240(%r8,%rdx,1),%rbx
+mov %rbx,256(%r8,%rdx,1)
+mov 240+8(%r8,%rdx,1),%rbx
+mov %rbx,256+8(%r8,%rdx,1)
 sub $16,%edx
 jne @Tetris_put_X7
-incl @_$DATA+52
-mov @_$DATA+56,%edx
+incl @_$DATA+52-@_$NEXT(%rip)
+mov @_$DATA+56-@_$NEXT(%rip),%edx
 sub $400,%edx
 mov %edx,%ebx
 shl $7,%edx
 sub %ebx,%edx
 shr $7,%edx
 add $400,%edx
-mov %edx,@_$DATA+56
+mov %edx,@_$DATA+56-@_$NEXT(%rip)
 
 @Tetris_put_X5
 add $16,%eax
@@ -533,13 +551,14 @@ inc %ecx
 cmp $20,%ecx
 jne @Tetris_put_X4
 
-mov @_$DATA+36,%eax
-mov %eax,@_$DATA+32
+mov @_$DATA+36-@_$NEXT(%rip),%eax
+mov %eax,@_$DATA+32-@_$NEXT(%rip)
 call @Tetris_rand
-mov %eax,@_$DATA+36
-movl $6,@_$DATA+40
-movl $-4,@_$DATA+44
+mov %eax,@_$DATA+36-@_$NEXT(%rip)
+movl $6,@_$DATA+40-@_$NEXT(%rip)
+movl $-4,@_$DATA+44-@_$NEXT(%rip)
 
+pop %r8
 pop %rdi
 pop %rsi
 pop %rbx
@@ -551,22 +570,22 @@ ret
 @Tetris_rotate
 push %rax
 push %rcx
-testb $1,@_$DATA+48
+testb $1,@_$DATA+48-@_$NEXT(%rip)
 jne @Tetris_rotate_X1
 
-mov @_$DATA+32,%eax
+mov @_$DATA+32-@_$NEXT(%rip),%eax
 lea 1(%rax),%ecx
 mov %al,%ch
 and $3,%cl
 and $0xfc,%al
 or %cl,%al
-mov %eax,@_$DATA+32
+mov %eax,@_$DATA+32-@_$NEXT(%rip)
 
 call @Tetris_check
 test %al,%al
 je @Tetris_rotate_X1
 
-mov %ch,@_$DATA+32
+mov %ch,@_$DATA+32-@_$NEXT(%rip)
 
 @Tetris_rotate_X1
 
@@ -578,18 +597,18 @@ ret
 @Tetris_move
 push %rax
 push %rdx
-testb $1,@_$DATA+48
+testb $1,@_$DATA+48-@_$NEXT(%rip)
 jne @Tetris_move_end
 
-add %eax,@_$DATA+40
-add %ecx,@_$DATA+44
+add %eax,@_$DATA+40-@_$NEXT(%rip)
+add %ecx,@_$DATA+44-@_$NEXT(%rip)
 mov %eax,%edx
 call @Tetris_check
 xchg %eax,%edx
 test %dl,%dl
 je @Tetris_move_X1
-sub %eax,@_$DATA+40
-sub %ecx,@_$DATA+44
+sub %eax,@_$DATA+40-@_$NEXT(%rip)
+sub %ecx,@_$DATA+44-@_$NEXT(%rip)
 @Tetris_move_X1
 test %dl,%cl
 je @Tetris_move_end
@@ -606,12 +625,12 @@ ret
 
 @game_init
 call @Tetris_rand
-mov %eax,@_$DATA+32
+mov %eax,@_$DATA+32-@_$NEXT(%rip)
 call @Tetris_rand
-mov %eax,@_$DATA+36
-movl $6,@_$DATA+40
-movl $-4,@_$DATA+44
-movl $1000,@_$DATA+56
+mov %eax,@_$DATA+36-@_$NEXT(%rip)
+movl $6,@_$DATA+40-@_$NEXT(%rip)
+movl $-4,@_$DATA+44-@_$NEXT(%rip)
+movl $1000,@_$DATA+56-@_$NEXT(%rip)
 ret
 
 @WndProc
@@ -656,7 +675,7 @@ mov %r14,%rcx
 call @paint_all
 mov %rbx,%rcx
 mov $983488,%edx
-mov $@_$DATA+576,%r8
+lea @_$DATA+576-@_$NEXT(%rip),%r8
 .dllcall "gdi32.dll" "SetBitmapBits"
 sub $8,%rsp
 
@@ -733,17 +752,17 @@ jne @WndProc_Timer
 
 call @Tetris_clock
 shl $1,%eax
-add @_$DATA+64,%eax
-cmp @_$DATA+56,%eax
+add @_$DATA+64-@_$NEXT(%rip),%eax
+cmp @_$DATA+56-@_$NEXT(%rip),%eax
 jb @clock_X1
-sub @_$DATA+56,%eax
+sub @_$DATA+56-@_$NEXT(%rip),%eax
 push %rax
 xor %eax,%eax
 mov $1,%ecx
 call @Tetris_move
 pop %rax
 @clock_X1
-mov %eax,@_$DATA+64
+mov %eax,@_$DATA+64-@_$NEXT(%rip)
 
 @WndProc_Timer
 
@@ -768,9 +787,11 @@ call @game_init
 xor %ebx,%ebx
 
 movq $80,(%rsp)
-movq $@WndProc,8(%rsp)
+lea @WndProc-@_$NEXT(%rip),%rax
+mov %rax,8(%rsp)
 mov %rbx,16(%rsp)
-movq $0x400000,24(%rsp)
+lea @_$IMAGE-@_$NEXT(%rip),%rax
+mov %rax,24(%rsp)
 
 sub $16,%rsp
 
@@ -791,7 +812,8 @@ add $32,%rsp
 mov %rax,40(%rsp)
 movq $8,48(%rsp)
 mov %rbx,56(%rsp)
-movq $@WCName,64(%rsp)
+lea @WinName-@_$NEXT(%rip),%rax
+mov %rax,64(%rsp)
 mov %rbx,72(%rsp)
 
 mov %rsp,%rcx
@@ -803,17 +825,18 @@ test %rax,%rax
 je @Err_Exit
 
 push %rbx
-pushq $0x400000
+lea @_$IMAGE-@_$NEXT(%rip),%rax
+push %rax
 push %rbx
 push %rbx
-pushq $484
-pushq $508
+pushq $484+29
+pushq $508+6
 mov $0x80000000,%eax
 push %rax
 push %rax
-mov $0x00c80000,%r9d
-mov $@WinName,%r8d
-mov $@WCName,%edx
+mov $0x10c80000,%r9d
+lea @WinName-@_$NEXT(%rip),%rdx
+mov %rdx,%r8
 mov $0x100,%ecx
 push %r9
 push %r8
@@ -822,28 +845,8 @@ push %rcx
 .dllcall "user32.dll" "CreateWindowExA"
 test %rax,%rax
 je @Err_Exit
-mov %rax,@_$DATA+0
-mov %rax,%rcx
-lea 32(%rsp),%rdx
-.dllcall "user32.dll" "GetWindowRect"
-mov @_$DATA+0,%rcx
-lea 48(%rsp),%rdx
-.dllcall "user32.dll" "GetClientRect"
-mov 32(%rsp),%edx
-mov 36(%rsp),%r8d
-mov $1016,%r9d
-sub 56(%rsp),%r9d
-mov $968,%eax
-sub 60(%rsp),%eax
-mov %rax,32(%rsp)
-movq $0,40(%rsp)
-mov @_$DATA+0,%rcx
-.dllcall "user32.dll" "MoveWindow"
-mov @_$DATA+0,%rcx
-mov $5,%edx
-.dllcall "user32.dll" "ShowWindow"
-
-mov @_$DATA+0,%rax
+mov %rax,@_$DATA+0-@_$NEXT(%rip)
+mov @_$DATA+0-@_$NEXT(%rip),%rax
 mov %rax,%rcx
 xor %edx,%edx
 mov %edx,%r9d
@@ -974,5 +977,7 @@ ret
 @Tetris_color
 .long 0x00ff00,0xffff00,0xff00ff,0xff0000,0x00ffff,0xff0000,0x00ffff
 
+@WinName
+.string "Tetris"
 
 .datasize 995328
